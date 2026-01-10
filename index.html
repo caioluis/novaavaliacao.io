@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador Multi-XP (V2) - Golden Age RPG</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700;900&family=Roboto+Mono:wght@400;700&display=swap" rel="stylesheet">
+   
+  <style>
+    /* --- TEMA DA FERRAMENTA --- */
+    :root {
+      --bg: #101118;
+      --panel: #1b1d29;
+      --input-bg: #0c0d13;
+      --border: #2a2d3d;
+      --accent: #6D20C5;
+      --text: #e0e0e0;
+      --text-dim: #a0a0a0;
+      --success: #20c56d;
+      --danger: #c52020;
+      --warn: #e08f2f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Roboto', sans-serif; background: var(--bg); color: var(--text); padding: 20px; }
+    .container { max-width: 900px; margin: 0 auto; }
+
+    header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid var(--border); padding-bottom: 20px; position: relative; }
+    h1 { color: var(--accent); font-weight: 900; }
+    
+    .section-box { background: var(--panel); border: 1px solid var(--border); padding: 20px; border-radius: 8px; margin-bottom: 25px; }
+    .section-title { color: var(--accent); margin-bottom: 15px; font-weight: 700; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    .form-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+    label { font-size: 0.85em; color: var(--text-dim); margin-bottom: 5px; font-weight: 700; }
+    
+    input, select, textarea {
+      background: var(--input-bg); border: 1px solid var(--border); color: var(--text);
+      padding: 10px; border-radius: 4px; font-family: inherit; width: 100%; outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 80px; }
+    /* Altura maior para o campo de itens */
+    #p-items { min-height: 120px; font-family: 'Roboto Mono', monospace; font-size: 0.9em; }
+
+    /* --- XP Row Styles --- */
+    .xp-rows-container { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .xp-row { display: flex; gap: 10px; align-items: center; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; border: 1px solid var(--border); }
+    .xp-row select { flex: 2; }
+    .xp-row input { flex: 1; }
+    .btn-remove-row { background: var(--danger); color: #fff; border: none; padding: 0 10px; height: 38px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .btn-add-xp { background: var(--input-bg); border: 1px dashed var(--accent); color: var(--accent); width: 100%; padding: 8px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+    .btn-add-xp:hover { background: rgba(109, 32, 197, 0.1); }
+
+    /* --- Buttons --- */
+    button { padding: 10px 20px; border: none; border-radius: 4px; font-weight: 700; cursor: pointer; color: #fff; transition: filter 0.2s; }
+    button:hover { filter: brightness(1.2); }
+    .btn-outline { background: transparent; border: 1px solid var(--accent); color: var(--accent); width: 100%; }
+    .btn-success { background: var(--success); width: 100%; }
+
+    /* --- Player Card Preview --- */
+    .player-card { background: var(--input-bg); border: 1px solid var(--border); border-left: 4px solid var(--text-dim); border-radius: 6px; padding: 15px; margin-bottom: 10px; position: relative; }
+    .player-card[data-status="1"] { border-left-color: var(--success); }
+    .player-card[data-status="2"] { border-left-color: var(--danger); }
+    .player-card[data-status="3"] { border-left-color: #555; }
+    
+    .preview-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 8px; }
+    .preview-actions button { background: none; border: none; font-size: 1.2em; cursor: pointer; margin-left: 5px; }
+    .preview-xp-badges { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 5px; }
+    .badge { font-size: 0.75em; padding: 2px 6px; background: rgba(109,32,197,0.2); border: 1px solid var(--accent); border-radius: 3px; color: #fff; }
+    .badge span { color: var(--success); font-weight: bold; margin-left: 5px; }
+
+    /* --- Output --- */
+    .output-area { margin-top: 40px; border-top: 2px dashed var(--border); padding-top: 20px; }
+    #output-code { font-family: 'Roboto Mono', monospace; font-size: 0.85em; color: var(--success); height: 150px; white-space: nowrap; overflow-x: auto; }
+
+    /* --- Import Modal --- */
+    .import-btn-header { position: absolute; right: 0; top: 0; background: var(--warn); color: #000; font-size: 0.8em; padding: 8px 15px; }
+    #import-modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); z-index: 999; align-items: center; justify-content: center; }
+    .modal-content { background: var(--panel); padding: 20px; border-radius: 8px; width: 90%; max-width: 600px; border: 1px solid var(--border); }
+
+    @media(max-width: 700px) { 
+      .form-grid { grid-template-columns: 1fr; } 
+      header { padding-top: 50px; }
+      .import-btn-header { width: 100%; top: 0; right: auto; left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="import-modal">
+    <div class="modal-content">
+        <h3 class="section-title">Importar Relatório Existente</h3>
+        <p style="margin-bottom: 10px; font-size: 0.9em; color: var(--text-dim);">Cole o código HTML completo do relatório (versão Multi-XP).</p>
+        <textarea id="import-code-input" placeholder="<link href=..." style="height: 150px; margin-bottom: 15px;"></textarea>
+        <div style="display:flex; gap:10px;">
+            <button class="btn-success" onclick="processImport()">Carregar Dados</button>
+            <button class="btn-outline" onclick="document.getElementById('import-modal').style.display='none'">Cancelar</button>
+        </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <header>
+      <h1>Gerador Multi-XP</h1>
+      <p>Avaliação de Missões - Golden Age RPG</p>
+      <button class="import-btn-header" onclick="document.getElementById('import-modal').style.display='flex'">Importar Código</button>
+    </header>
+
+    <div class="section-box">
+      <div class="section-title">1. Dados da Missão</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Mestre Responsável</label><input type="text" id="gm-name"></div>
+        <div class="form-group"><label>Local</label><input type="text" id="loc"></div>
+        <div class="form-group">
+          <label>Ameaça</label>
+          <select id="threat">
+            <option>Grau 4</option><option>Grau 3</option><option>Grau 2</option>
+            <option>Grau 1</option><option>Grau Semi-Especial</option><option>Grau Especial</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status da Missão</label>
+          <select id="status"><option value="1">Sucesso</option><option value="2">Falha</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Sumário</label><textarea id="summary"></textarea></div>
+    </div>
+
+    <div class="section-box">
+      <div class="section-title">2. Jogadores e Recompensas</div>
+      
+      <div id="players-list"></div>
+
+      <div style="margin-top: 20px; border-top: 1px dashed var(--border); padding-top: 15px;">
+        <h4 style="color: var(--accent); margin-bottom: 15px;">Adicionar / Editar Jogador</h4>
+        <div class="form-grid">
+          <div class="form-group"><label>Nome do Personagem</label><input type="text" id="p-name"></div>
+          <div class="form-group"><label>Avatar (URL)</label><input type="text" id="p-avatar"></div>
+        </div>
+
+        <div class="form-group" style="background: rgba(0,0,0,0.1); padding: 10px; border-radius: 4px;">
+          <label style="color: var(--success);">Distribuição de XP por Aptidão</label>
+          <div id="xp-rows" class="xp-rows-container">
+            </div>
+          <button type="button" class="btn-add-xp" onclick="addXpRow()">+ Adicionar Linha de Aptidão</button>
+        </div>
+
+        <div class="form-grid">
+            <div class="form-group">
+               <label>Status Individual</label>
+               <select id="p-status">
+                   <option value="1">Aprovado</option>
+                   <option value="2">Reprovado/Falhou</option>
+                   <option value="3">Morto em Operação</option>
+               </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label>Itens e Recompensas Detalhadas</label>
+            <p style="font-size:0.75em; color:var(--text-dim); margin-bottom:5px;">
+                Para criar múltiplos cards de itens, separe-os com <b>2 Enter (uma linha vazia)</b>. <br>
+                O script tentará colocar em negrito palavras como "Tipo:", "Dano:", "Efeito:" automaticamente.
+            </p>
+            <textarea id="p-items" placeholder="Machado de Assis
+Tipo: Arma
+Dano: 100
+
+Poção de Cura
+Recupera 50 HP"></textarea>
+        </div>
+        
+        <div class="form-group"><label>Notas do Mestre</label><textarea id="p-notes"></textarea></div>
+        <button class="btn-outline" id="btn-save-player" onclick="savePlayer()">+ Adicionar Jogador na Lista</button>
+      </div>
+    </div>
+
+    <div class="output-area">
+      <h3>3. Código Final (Linha Única)</h3>
+      <textarea id="output-code" readonly onclick="this.select()"></textarea>
+      <button class="btn-success" style="margin-top:10px;" onclick="copyCode()">Copiar Código HTML</button>
+    </div>
+  </div>
+
+  <script>
+    // --- LISTA DE APTIDÕES ---
+    const skillsData = {
+      "FOR": ["Espadas Longas", "Machados Longos", "Martelos Longos", "Clavas", "Arcos Longos", "Resistência", "Mitridatismo", "Combate Desarmado", "Escalada", "Acrobacia"],
+      "DES": ["Espadas Curtas", "Adagas", "Lâminas Duplas", "Arcos Curtos", "Balestras", "Machados Curtos", "Martelos Curtos", "Lanças", "Foices", "Bastões", "Correntes e Kusarigama", "Arremesso de Armas", "Pistolas/Revólveres", "Espingardas", "Rifles de Precisão", "Rifles de Assalto", "Submetralhadoras", "Metralhadoras Leves", "Furtividade", "Natação", "Corrida"],
+      "INT": ["Feitiços", "Barreiras", "Vontade", "Manipulação", "Pactos", "Percepção Mágica", "Primeiros Socorros", "Técnica Reversa", "Percepção Visual", "Sobrevivência"]
+    };
+
+    let players = [];
+    let editIndex = -1;
+
+    // --- FUNÇÕES AUXILIARES ---
+    function generateSkillOptions(selectedSkill = "") {
+      let html = `<option value="">-- Selecione a Aptidão --</option>`;
+      for (const [attr, skills] of Object.entries(skillsData)) {
+        html += `<optgroup label="${attr}">`;
+        skills.forEach(skill => {
+          const isSel = skill === selectedSkill ? "selected" : "";
+          html += `<option value="${skill}" ${isSel}>${skill}</option>`;
+        });
+        html += `</optgroup>`;
+      }
+      return html;
+    }
+
+    function addXpRow(skill = "", val = "") {
+      const container = document.getElementById('xp-rows');
+      const div = document.createElement('div');
+      div.className = 'xp-row';
+      div.innerHTML = `
+        <select class="xp-skill-select">${generateSkillOptions(skill)}</select>
+        <input type="text" class="xp-val-input" placeholder="+100 XP" value="${val}">
+        <button class="btn-remove-row" onclick="this.parentElement.remove()" title="Remover linha">X</button>
+      `;
+      container.appendChild(div);
+    }
+
+    // --- PROCESSAMENTO INTELIGENTE DE ITENS ---
+    function processItemsInput(text) {
+        if (!text) return ["Nenhum"];
+        
+        // 1. Separa por linha dupla (Enter Enter)
+        let rawItems = text.split(/\n\s*\n/);
+        
+        return rawItems.map(item => {
+            let cleanItem = item.trim();
+            if (!cleanItem) return null;
+
+            // 2. Transforma quebras de linha simples em <br> para ficar visual no CSS
+            // O CSS usa white-space: pre-wrap, então teoricamente \n funciona, 
+            // mas vamos garantir a sanitização básica.
+            
+            // 3. Auto-Bold em chaves comuns de RPG (Ex: "Tipo:" vira "<b>Tipo:</b>")
+            // Regex procura palavra seguida de dois pontos no início da linha ou após espaço
+            cleanItem = cleanItem.replace(/((?:^|\n| )[\w\u00C0-\u00FF]+:)/g, ' <b>$1</b>');
+            
+            // Se a primeira linha não tem chave, assume que é o Título
+            let lines = cleanItem.split('\n');
+            if (lines.length > 0 && !lines[0].includes(':')) {
+                lines[0] = `<span class="item-title">${lines[0]}</span>`;
+                cleanItem = lines.join('\n');
+            }
+
+            return cleanItem;
+        }).filter(i => i !== null);
+    }
+
+    // --- LÓGICA DO JOGADOR (SALVAR/EDITAR/REMOVER) ---
+    function savePlayer() {
+      const name = document.getElementById('p-name').value;
+      if (!name) return alert("Nome do jogador é obrigatório");
+
+      // Coletar XPs das linhas
+      const xpRows = document.querySelectorAll('.xp-row');
+      let xpList = [];
+      xpRows.forEach(row => {
+        const s = row.querySelector('select').value;
+        const v = row.querySelector('input').value;
+        if (s && v) xpList.push({ skill: s, value: v });
+      });
+
+      if (xpList.length === 0) xpList.push({ skill: "Geral", value: "+0 XP" });
+
+      // Processar Itens Complexos
+      const itemsRawText = document.getElementById('p-items').value;
+      const itemsProcessed = processItemsInput(itemsRawText);
+
+      const player = {
+        name: name,
+        avatar: document.getElementById('p-avatar').value,
+        status: document.getElementById('p-status').value,
+        itemsRaw: itemsRawText, // Guarda o texto original para edição
+        items: itemsProcessed,  // Guarda o HTML processado para o template
+        notes: document.getElementById('p-notes').value,
+        xp: xpList
+      };
+
+      if (editIndex > -1) {
+        players[editIndex] = player;
+        editIndex = -1;
+        document.getElementById('btn-save-player').innerText = "+ Adicionar Jogador na Lista";
+      } else {
+        players.push(player);
+      }
+
+      clearPlayerForm();
+      renderPlayers();
+      generateCode();
+    }
+
+    function clearPlayerForm() {
+      document.getElementById('p-name').value = "";
+      document.getElementById('p-avatar').value = "";
+      document.getElementById('p-items').value = "";
+      document.getElementById('p-notes').value = "";
+      document.getElementById('xp-rows').innerHTML = "";
+      addXpRow(); // Adiciona uma linha vazia por padrão
+      document.getElementById('p-status').value = "1";
+    }
+
+    function editPlayer(idx) {
+      const p = players[idx];
+      document.getElementById('p-name').value = p.name;
+      document.getElementById('p-avatar').value = p.avatar;
+      document.getElementById('p-status').value = p.status;
+      
+      // Carrega o texto original (raw) se existir, senão tenta reconstruir
+      if (p.itemsRaw) {
+          document.getElementById('p-items').value = p.itemsRaw;
+      } else {
+          // Fallback para versões antigas
+          document.getElementById('p-items').value = p.items.map(i => i.replace(/<[^>]+>/g, '')).join('\n\n');
+      }
+
+      document.getElementById('p-notes').value = p.notes;
+      
+      const xpContainer = document.getElementById('xp-rows');
+      xpContainer.innerHTML = "";
+      p.xp.forEach(x => addXpRow(x.skill, x.value));
+
+      editIndex = idx;
+      document.getElementById('btn-save-player').innerText = "Salvar Edição";
+      window.scrollTo(0, document.querySelector('.section-box:nth-child(3)').offsetTop);
+    }
+
+    function removePlayer(idx) {
+      if(confirm("Tem certeza que deseja remover este jogador?")) {
+        players.splice(idx, 1);
+        renderPlayers();
+        generateCode();
+      }
+    }
+
+    function renderPlayers() {
+      const list = document.getElementById('players-list');
+      list.innerHTML = "";
+      if (players.length === 0) {
+          list.innerHTML = '<p style="color:var(--text-dim); text-align:center;">Nenhum jogador adicionado ainda.</p>';
+          return;
+      }
+      players.forEach((p, i) => {
+        let badgesHtml = p.xp.map(x => `<div class="badge">${x.skill} <span>${x.value}</span></div>`).join('');
+        let statusLabel = p.status == 1 ? "Aprovado" : (p.status == 2 ? "Reprovado" : "Morto");
+        let itemsCount = p.items.length;
+
+        const div = document.createElement('div');
+        div.className = 'player-card';
+        div.setAttribute('data-status', p.status);
+        div.innerHTML = `
+          <div class="preview-header">
+            <span>${p.name} <small>(${statusLabel})</small></span>
+            <div class="preview-actions">
+              <button onclick="editPlayer(${i})" title="Editar">✎</button>
+              <button onclick="removePlayer(${i})" style="color:var(--danger)" title="Remover">&times;</button>
+            </div>
+          </div>
+          <div class="preview-xp-badges">${badgesHtml}</div>
+          <div style="font-size:0.8em; color:#aaa;">${itemsCount} Item(ns) registrado(s)</div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    // --- GERADOR DE CÓDIGO (LINHA ÚNICA) ---
+    function generateCode() {
+      const gm = document.getElementById('gm-name').value || "GM";
+      const loc = document.getElementById('loc').value || "Local";
+      const threat = document.getElementById('threat').value;
+      const status = document.getElementById('status').value;
+      const summary = document.getElementById('summary').value.replace(/\n/g, '<br>');
+
+      let cardsHTML = players.map(p => {
+        const xpBadges = p.xp.map(x => 
+          `<div class="reward-skill-badge"><span class="reward-skill-name">${x.skill}</span><span class="reward-skill-val">${x.value}</span></div>`
+        ).join('');
+
+        // Gera os LIs. O CSS cuida da formatação com white-space: pre-wrap
+        const itemsList = p.items.map(itemHtml => `<li>${itemHtml}</li>`).join('');
+
+        return `<div class="reward-card" data-status="${p.status}"><div class="reward-avatar"><img src="${p.avatar}" alt="Avatar"></div><div class="reward-content"><div class="reward-player-name">${p.name}</div><div class="reward-xp-grid">${xpBadges}</div><ul class="reward-item-list">${itemsList}</ul><div class="reward-notes-accordion"><div class="reward-notes-toggle"></div><div class="reward-notes-content">${p.notes.replace(/\n/g, '<br>')}</div></div></div><div class="reward-stamp"></div></div>`;
+      }).join('');
+
+      const fullHTML = `<link href="https://goldenagerpg.github.io/templates.io/avaliacao.css" rel="stylesheet" type="text/css"><div class="report-container" data-mission-status="${status}"><div class="report-header"><div class="report-header-main"><h1 class="report-title"></h1><div class="report-primary-status"></div><div class="report-metadata"><div class="report-metadata-item mestre"><span class="label"></span><span class="value">${gm}</span></div><div class="report-metadata-item local"><span class="label"></span><span class="value">${loc}</span></div><div class="report-metadata-item ameaca"><span class="label"></span><span class="value threat">${threat}</span></div></div></div><div class="report-wax-seal"></div></div><div class="report-body"><section id="sumario"><h2></h2><p class="lead">${summary}</p></section><section id="recompensas"><h2></h2><p class="lead"></p><div class="reward-grid">${cardsHTML}</div></section><div class="report-footer"><div class="signature-line">${gm}</div></div></div></div>`;
+
+      document.getElementById('output-code').value = fullHTML;
+    }
+
+    function copyCode() {
+      const el = document.getElementById('output-code');
+      el.select();
+      document.execCommand('copy');
+      const btn = document.querySelector('.output-area .btn-success');
+      const originalText = btn.innerText;
+      btn.innerText = "Código Copiado!";
+      setTimeout(() => btn.innerText = originalText, 2000);
+    }
+
+    // --- FUNÇÃO DE IMPORTAÇÃO (ATUALIZADA) ---
+    function processImport() {
+        const html = document.getElementById('import-code-input').value;
+        if(!html) return alert("Cole o código HTML primeiro.");
+
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const container = doc.querySelector('.report-container');
+            if(!container) throw new Error("Código inválido: container não encontrado.");
+
+            // Dados Gerais
+            document.getElementById('status').value = container.getAttribute('data-mission-status') || '1';
+            document.getElementById('gm-name').value = doc.querySelector('.report-metadata-item.mestre .value')?.textContent || '';
+            document.getElementById('loc').value = doc.querySelector('.report-metadata-item.local .value')?.textContent || '';
+            document.getElementById('threat').value = doc.querySelector('.report-metadata-item.ameaca .value')?.textContent || 'Grau 4';
+            
+            const summaryHtml = doc.querySelector('#sumario .lead')?.innerHTML || '';
+            document.getElementById('summary').value = summaryHtml.replace(/<br\s*\/?>/gi, '\n');
+
+            // Jogadores
+            players = [];
+            const cardEls = doc.querySelectorAll('.reward-card');
+            cardEls.forEach(card => {
+                // Parse Itens (Reverse Engineering)
+                const pItemsRawArray = [];
+                card.querySelectorAll('.reward-item-list li').forEach(li => {
+                    // Tenta limpar tags de style e bold adicionadas
+                    let txt = li.innerHTML;
+                    txt = txt.replace(/<span class="item-title">(.+?)<\/span>/g, '$1');
+                    txt = txt.replace(/<b>(.+?)<\/b>/g, '$1');
+                    txt = txt.replace(/<br\s*\/?>/gi, '\n'); // Restaura quebras de linha
+                    pItemsRawArray.push(txt.trim());
+                });
+                const itemsRawText = pItemsRawArray.join('\n\n');
+                
+                // Parse Notas
+                const pNotesHtml = card.querySelector('.reward-notes-content')?.innerHTML || '';
+
+                // Parse Multi-XP (Badges)
+                const xpList = [];
+                card.querySelectorAll('.reward-skill-badge').forEach(badge => {
+                    xpList.push({
+                        skill: badge.querySelector('.reward-skill-name')?.textContent || 'Geral',
+                        value: badge.querySelector('.reward-skill-val')?.textContent || '+0 XP'
+                    });
+                });
+
+                // Reprocessar itens para o formato de display
+                const itemsProcessed = processItemsInput(itemsRawText);
+
+                players.push({
+                    status: card.getAttribute('data-status') || '1',
+                    avatar: card.querySelector('.reward-avatar img')?.src || '',
+                    name: card.querySelector('.reward-player-name')?.textContent || '',
+                    xp: xpList.length > 0 ? xpList : [{skill: 'Geral', value: '+0 XP'}],
+                    itemsRaw: itemsRawText,
+                    items: itemsProcessed,
+                    notes: pNotesHtml.replace(/<br\s*\/?>/gi, '\n')
+                });
+            });
+
+            renderPlayers();
+            generateCode();
+            document.getElementById('import-modal').style.display = 'none';
+            document.getElementById('import-code-input').value = '';
+            alert("Relatório importado com sucesso!");
+
+        } catch (e) {
+            console.error(e);
+            alert("Erro ao importar. Verifique se o código está correto e é da versão atual.");
+        }
+    }
+
+    // Inicialização
+    addXpRow(); // Começa com uma linha
+    renderPlayers();
+    ['gm-name', 'loc', 'threat', 'status', 'summary'].forEach(id => {
+      document.getElementById(id).addEventListener('input', generateCode);
+    });
+  </script>
+</body>
+</html>
