@@ -104,12 +104,24 @@
   <div class="container">
     <header>
       <h1>Gerador Multi-XP</h1>
-      <p>Avaliação de Missões - Golden Age RPG</p>
+      <p>Avaliação de Atividades - Golden Age RPG</p>
       <button class="import-btn-header" onclick="document.getElementById('import-modal').style.display='flex'">Importar Código</button>
     </header>
 
     <div class="section-box">
-      <div class="section-title">1. Dados da Missão</div>
+      <div class="section-title">1. Dados da Atividade</div>
+      <div class="form-group">
+        <label>Tipo de Atividade</label>
+        <select id="activity-type">
+          <option value="missao">Missão</option>
+          <option value="treino-atributo">Treino de Atributo</option>
+          <option value="treino-aptidao">Treino de Aptidão</option>
+          <option value="treino-aptidao-atributo">Treino de Aptidão &amp; Atributo</option>
+          <option value="quest">Quest</option>
+          <option value="raid">Raid</option>
+          <option value="evento">Evento</option>
+        </select>
+      </div>
       <div class="form-grid">
         <div class="form-group"><label>Mestre Responsável</label><input type="text" id="gm-name"></div>
         <div class="form-group"><label>Local</label><input type="text" id="loc"></div>
@@ -187,6 +199,7 @@ Recupera 50 HP"></textarea>
   <script>
     // --- LISTA DE APTIDÕES ---
     const skillsData = {
+      "GERAL": ["Livre"],
       "FOR": ["Espadas Longas", "Machados Longos", "Martelos Longos", "Clavas", "Arcos Longos", "Resistência", "Mitridatismo", "Combate Desarmado", "Escalada", "Acrobacia"],
       "DES": ["Espadas Curtas", "Adagas", "Lâminas Duplas", "Arcos Curtos", "Balestras", "Machados Curtos", "Martelos Curtos", "Lanças", "Foices", "Bastões", "Correntes e Kusarigama", "Arremesso de Armas", "Pistolas/Revólveres", "Espingardas", "Rifles de Precisão", "Rifles de Assalto", "Submetralhadoras", "Metralhadoras Leves", "Furtividade", "Natação", "Corrida"],
       "INT": ["Feitiços", "Barreiras", "Vontade", "Manipulação", "Pactos", "Percepção Mágica", "Primeiros Socorros", "Técnica Reversa", "Percepção Visual", "Sobrevivência"]
@@ -374,19 +387,34 @@ Recupera 50 HP"></textarea>
       const threat = document.getElementById('threat').value;
       const status = document.getElementById('status').value;
       const summary = document.getElementById('summary').value.replace(/\n/g, '<br>');
+      const activityType = document.getElementById('activity-type').value;
+      const activityLabels = {
+        'missao': 'da Missão',
+        'treino-atributo': 'do Treino',
+        'treino-aptidao': 'do Treino',
+        'treino-aptidao-atributo': 'do Treino',
+        'quest': 'da Quest',
+        'raid': 'da Raid',
+        'evento': 'do Evento'
+      };
+      const activityLabel = activityLabels[activityType] || 'Missão';
 
       let cardsHTML = players.map(p => {
-        const xpBadges = p.xp.map(x => 
+        const xpBadges = p.xp.map(x =>
           `<div class="reward-skill-badge"><span class="reward-skill-name">${x.skill}</span><span class="reward-skill-val">${x.value}</span></div>`
         ).join('');
+
+        const xpGridHtml = activityType !== 'treino-atributo'
+          ? `<div class="reward-xp-grid">${xpBadges}</div>`
+          : '';
 
         // Gera os LIs. O CSS cuida da formatação com white-space: pre-wrap
         const itemsList = p.items.map(itemHtml => `<li>${itemHtml}</li>`).join('');
 
-        return `<div class="reward-card" data-status="${p.status}"><div class="reward-avatar"><img src="${p.avatar}" alt="Avatar"></div><div class="reward-content"><div class="reward-player-name">${p.name}</div><div class="reward-xp-grid">${xpBadges}</div><ul class="reward-item-list">${itemsList}</ul><div class="reward-notes-accordion"><div class="reward-notes-toggle"></div><div class="reward-notes-content">${p.notes.replace(/\n/g, '<br>')}</div></div></div><div class="reward-stamp"></div></div>`;
+        return `<div class="reward-card" data-status="${p.status}"><div class="reward-avatar"><img src="${p.avatar}" alt="Avatar"></div><div class="reward-content"><div class="reward-player-name">${p.name}</div>${xpGridHtml}<ul class="reward-item-list">${itemsList}</ul><div class="reward-notes-accordion"><div class="reward-notes-toggle"></div><div class="reward-notes-content">${p.notes.replace(/\n/g, '<br>')}</div></div></div><div class="reward-stamp"></div></div>`;
       }).join('');
 
-      const fullHTML = `<link href="https://goldenagerpg.github.io/templates.io/avaliacao.css" rel="stylesheet" type="text/css"><div class="report-container" data-mission-status="${status}"><div class="report-header"><div class="report-header-main"><h1 class="report-title"></h1><div class="report-primary-status"></div><div class="report-metadata"><div class="report-metadata-item mestre"><span class="label"></span><span class="value">${gm}</span></div><div class="report-metadata-item local"><span class="label"></span><span class="value">${loc}</span></div><div class="report-metadata-item ameaca"><span class="label"></span><span class="value threat">${threat}</span></div></div></div><div class="report-wax-seal"></div></div><div class="report-body"><section id="sumario"><h2></h2><p class="lead">${summary}</p></section><section id="recompensas"><h2></h2><p class="lead"></p><div class="reward-grid">${cardsHTML}</div></section><div class="report-footer"><div class="signature-line">${gm}</div></div></div></div>`;
+      const fullHTML = `<link href="https://goldenagerpg.github.io/templates.io/avaliacao.css" rel="stylesheet" type="text/css"><div class="report-container" data-mission-status="${status}"><div class="report-header"><div class="report-header-main-new"><h1 class="report-title">Relatório ${activityLabel}</h1><div class="report-primary-status"></div><div class="report-metadata"><div class="report-metadata-item mestre"><span class="label"></span><span class="value">${gm}</span></div><div class="report-metadata-item local"><span class="label"></span><span class="value">${loc}</span></div><div class="report-metadata-item ameaca"><span class="label"></span><span class="value threat">${threat}</span></div></div></div><div class="report-wax-seal"></div></div><div class="report-body"><section id="sumario-new"><h2>Sumário ${activityLabel}</h2><p class="lead">${summary}</p></section><section id="recompensas"><h2></h2><p class="lead"></p><div class="reward-grid">${cardsHTML}</div></section><div class="report-footer"><div class="signature-line">${gm}</div></div></div></div>`;
 
       document.getElementById('output-code').value = fullHTML;
     }
@@ -479,7 +507,7 @@ Recupera 50 HP"></textarea>
     // Inicialização
     addXpRow(); // Começa com uma linha
     renderPlayers();
-    ['gm-name', 'loc', 'threat', 'status', 'summary'].forEach(id => {
+    ['gm-name', 'loc', 'threat', 'status', 'summary', 'activity-type'].forEach(id => {
       document.getElementById(id).addEventListener('input', generateCode);
     });
   </script>
